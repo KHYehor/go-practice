@@ -1,7 +1,8 @@
-kckage main
+package main
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -55,11 +56,8 @@ func checkResult(result *Result) bool {
 
 func hashResponse(data *Message, result *Result) []byte {
 	var payload Payload
-	h := sha1.New()
-	h.Write([]byte(data.Secret))
-
-	payload.Wisdom = result.One + result.Two + result.Three + result.Four
-	payload.Secret = string(h.Sum(nil))
+	payload.Wisdom = result.One[3:] + result.Two[2:] + result.Three[2:] + result.Four[2:]
+	payload.Secret = hex.EncodeToString(sha1.New().Sum([]byte(data.Secret + "Za_stepuhu + Vlad")))
 	payload.Time = time.Now()
 	payload.Team = "Za_stepuhu + Vlad"
 	hashed, _ := json.Marshal(&payload)
@@ -87,6 +85,8 @@ func main() {
 			if err := json.Unmarshal(message.Payload(), &data); err != nil {
 				return
 			}
+			fmt.Printf(data.Wisdom)
+			fmt.Printf("\n")
 			// parse message to special struct
 			parseMessage(&data, &result)
 			// if we have enough messages we send reponse
@@ -95,9 +95,9 @@ func main() {
 				hashed := hashResponse(&data, &result)
 				// sending answer
 				client.Publish("/test/result", 0, false, hashed)
+				done <- true
 			}
 		})
 	}()
 	<-done // Awaiting for all requests
 }
-
